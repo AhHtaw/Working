@@ -1,7 +1,24 @@
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using StudentCoreAPI.Models;
 
+var config = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", optional: false)
+    .Build();
 var builder = WebApplication.CreateBuilder(args);
+
+// Apply logging
+builder.Logging.ClearProviders();
+
+var logPath = config.GetValue<string>("Logging:FilePath");
+
+var logger = new LoggerConfiguration()
+    .WriteTo.File(path: logPath,
+    rollOnFileSizeLimit: true,
+    fileSizeLimitBytes: Convert.ToInt32(config.GetValue<string>("Logging:MaxLogFileSize")))
+    .CreateLogger();
+
+builder.Logging.AddSerilog(logger);
 
 // Add services to the container.
 
@@ -20,11 +37,10 @@ builder.Services.AddCors(options =>
         });
 });
 
-
-IConfiguration configuration;
-configuration=new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
+//IConfiguration configuration;
+//configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
 builder.Services.AddDbContext<IpDbfirstContext>
-    (option => option.UseSqlServer(configuration.GetConnectionString("StudentConnectionString")));
+    (option => option.UseSqlServer(config.GetConnectionString("StudentConnectionString")));
 
 var app = builder.Build();
 app.UseCors(myOrigins);
